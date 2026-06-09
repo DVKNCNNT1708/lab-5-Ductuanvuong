@@ -28,7 +28,7 @@ npm install
 cp .env.example .env
 
 # Build images (nếu chưa có) và khởi động các container trong nền
-docker compose up -d --build
+docker compose up -d --build --wait
 ```
 
 Lệnh trên sẽ tạo các container:
@@ -36,6 +36,13 @@ Lệnh trên sẽ tạo các container:
 - `fit4110-db-lab05` (PostgreSQL)
 - `fit4110-ai-lab05` (AI service mẫu chạy port 9000)
 - `fit4110-api-lab05` (API FastAPI trên port 8000)
+
+API và AI image được tag theo quy ước:
+
+```text
+ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/iot-ingestion:v0.1.0-team-iot
+ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-service:v0.1.0-team-iot
+```
 
 Theo dõi log:
 
@@ -55,6 +62,8 @@ curl http://localhost:9000/health
 # DB readiness
 docker exec -it fit4110-db-lab05 pg_isready -U $POSTGRES_USER
 ```
+
+Nếu máy đang có PostgreSQL local chiếm port `5432`, đổi `POSTGRES_PUBLISHED_PORT` trong `.env` sang port trống, ví dụ `15432`. Port nội bộ container vẫn là `5432`.
 
 Bạn cũng có thể truy cập endpoint `/predict` của AI service để xem kết quả mẫu:
 
@@ -76,6 +85,8 @@ Report sinh tại:
 reports/newman-lab05-compose.xml
 reports/newman-lab05-compose.html
 ```
+
+Evidence local bổ sung được lưu trong `reports/LAB05_EVIDENCE.md`.
 
 ---
 
@@ -111,4 +122,5 @@ make logs
 
 - Sử dụng `docker compose ps` để xem trạng thái container.
 - Nếu API trả lỗi kết nối DB, hãy kiểm tra biến môi trường `POSTGRES_*` trong `.env` và đảm bảo DB đã sẵn sàng (`pg_isready`).
+- Nếu API không gọi được AI, kiểm tra `AI_SERVICE_URL=http://ai-service:9000` trong `.env` và network `team-internal`.
 - Nếu AI service cần tải mô hình lớn, tăng `start_period` của healthcheck trong `docker-compose.yml`.

@@ -1,0 +1,130 @@
+fit4110-ai-lab05  | INFO:     Started server process [1]
+fit4110-ai-lab05   | INFO:     Waiting for application startup.
+fit4110-ai-lab05   | INFO:     Application startup complete.
+fit4110-ai-lab05   | INFO:     Uvicorn running on http://0.0.0.0:9000 (Press CTRL+C to quit)
+fit4110-ai-lab05   | INFO:     127.0.0.1:41872 - "GET /health HTTP/1.1" 200 OK
+fit4110-ai-lab05   | INFO:     172.19.0.4:42208 - "POST /predict HTTP/1.1" 200 OK
+fit4110-ai-lab05   | INFO:     172.19.0.4:42220 - "POST /predict HTTP/1.1" 200 OK
+fit4110-ai-lab05   | INFO:     127.0.0.1:39398 - "GET /health HTTP/1.1" 200 OK
+fit4110-db-lab05   | The files belonging to this database system will be owned by user "postgres".
+fit4110-db-lab05   | This user must also own the server process.
+fit4110-db-lab05   |
+fit4110-db-lab05   | The database cluster will be initialized with locale "en_US.utf8".
+fit4110-db-lab05   | The default database encoding has accordingly been set to "UTF8".
+fit4110-db-lab05   | The default text search configuration will be set to "english".
+fit4110-db-lab05   |
+fit4110-ai-lab05   | INFO:     172.19.0.1:65150 - "GET /health HTTP/1.1" 200 OK
+fit4110-ai-lab05   | INFO:     172.19.0.1:65154 - "POST /predict HTTP/1.1" 200 OK
+fit4110-ai-lab05   | INFO:     172.19.0.4:54744 - "GET /health HTTP/1.1" 200 OK
+fit4110-ai-lab05   | INFO:     127.0.0.1:58280 - "GET /health HTTP/1.1" 200 OK
+fit4110-api-lab05  | INFO:     Started server process [7]
+fit4110-api-lab05  | INFO:     Waiting for application startup.
+fit4110-api-lab05  | INFO:     Application startup complete.
+fit4110-api-lab05  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+fit4110-api-lab05  | INFO:     127.0.0.1:37326 - "GET /health HTTP/1.1" 200 OK
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "GET /health HTTP/1.1" 200 OK
+fit4110-db-lab05   | Data page checksums are disabled.
+fit4110-db-lab05   |
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "POST /readings HTTP/1.1" 201 Created
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "GET /readings/latest?device_id=ESP32-LAB-A01&limit=5 HTTP/1.1" 200 OK
+fit4110-db-lab05   | fixing permissions on existing directory /var/lib/postgresql/data ... ok
+fit4110-db-lab05   | creating subdirectories ... ok
+fit4110-db-lab05   | selecting dynamic shared memory implementation ... posix
+fit4110-db-lab05   | selecting default max_connections ... 100
+fit4110-db-lab05   | selecting default shared_buffers ... 128MB
+fit4110-db-lab05   | selecting default time zone ... UTC
+fit4110-db-lab05   | creating configuration files ... ok
+fit4110-db-lab05   | running bootstrap script ... ok
+fit4110-db-lab05   | sh: locale: not found
+fit4110-db-lab05   | 2026-06-09 07:40:20.927 UTC [36] WARNING:  no usable system locales were found
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "GET /readings/R-20260609-0006 HTTP/1.1" 200 OK
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "POST /readings HTTP/1.1" 401 Unauthorized
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "POST /readings HTTP/1.1" 401 Unauthorized
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "POST /readings HTTP/1.1" 422 Unprocessable Entity
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "POST /readings HTTP/1.1" 422 Unprocessable Entity
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "POST /readings HTTP/1.1" 201 Created
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "POST /readings HTTP/1.1" 422 Unprocessable Entity
+fit4110-api-lab05  | INFO:     172.18.0.1:57302 - "GET /health HTTP/1.1" 200 OK
+fit4110-db-lab05   | performing post-bootstrap initialization ... ok
+fit4110-db-lab05   | initdb: warning: enabling "trust" authentication for local connections
+fit4110-api-lab05  | INFO:     127.0.0.1:57932 - "GET /health HTTP/1.1" 200 OK
+fit4110-api-lab05  | INFO:     172.18.0.1:62642 - "GET /health HTTP/1.1" 200 OK
+fit4110-api-lab05  | INFO:     127.0.0.1:33110 - "GET /health HTTP/1.1" 200 OK
+fit4110-db-lab05   | initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+fit4110-db-lab05   | syncing data to disk ... ok
+fit4110-db-lab05   |
+fit4110-db-lab05   |
+fit4110-db-lab05   | Success. You can now start the database server using:
+fit4110-db-lab05   |
+fit4110-db-lab05   |     pg_ctl -D /var/lib/postgresql/data -l logfile start
+fit4110-db-lab05   |
+fit4110-db-lab05   | waiting for server to start....2026-06-09 07:40:21.223 UTC [42] LOG:  starting PostgreSQL 15.18 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+fit4110-db-lab05   | 2026-06-09 07:40:21.223 UTC [42] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+fit4110-db-lab05   | 2026-06-09 07:40:21.226 UTC [45] LOG:  database system was shut down at 2026-06-09 07:40:21 UTC
+fit4110-db-lab05   | 2026-06-09 07:40:21.228 UTC [42] LOG:  database system is ready to accept connections
+fit4110-db-lab05   |  done
+fit4110-db-lab05   | server started
+fit4110-db-lab05   | CREATE DATABASE
+fit4110-db-lab05   |
+fit4110-db-lab05   |
+fit4110-db-lab05   | /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+fit4110-db-lab05   |
+fit4110-db-lab05   | waiting for server to shut down....2026-06-09 07:40:21.362 UTC [42] LOG:  received fast shutdown request
+fit4110-db-lab05   | 2026-06-09 07:40:21.363 UTC [42] LOG:  aborting any active transactions
+fit4110-db-lab05   | 2026-06-09 07:40:21.364 UTC [42] LOG:  background worker "logical replication launcher" (PID 48) exited with exit code 1
+fit4110-db-lab05   | 2026-06-09 07:40:21.364 UTC [43] LOG:  shutting down
+fit4110-db-lab05   | 2026-06-09 07:40:21.365 UTC [43] LOG:  checkpoint starting: shutdown immediate
+fit4110-db-lab05   | 2026-06-09 07:40:21.390 UTC [43] LOG:  checkpoint complete: wrote 921 buffers (5.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.009 s, sync=0.015 s, total=0.026 s; sync files=301, longest=0.005 s, average=0.001 s; distance=4238 kB, estimate=4238 kB
+fit4110-db-lab05   | 2026-06-09 07:40:21.392 UTC [42] LOG:  database system is shut down
+fit4110-db-lab05   |  done
+fit4110-db-lab05   | server stopped
+fit4110-db-lab05   |
+fit4110-db-lab05   | PostgreSQL init process complete; ready for start up.
+fit4110-db-lab05   |
+fit4110-db-lab05   | 2026-06-09 07:40:21.483 UTC [1] LOG:  starting PostgreSQL 15.18 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+fit4110-db-lab05   | 2026-06-09 07:40:21.483 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+fit4110-db-lab05   | 2026-06-09 07:40:21.483 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+fit4110-db-lab05   | 2026-06-09 07:40:21.485 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+fit4110-db-lab05   | 2026-06-09 07:40:21.487 UTC [58] LOG:  database system was shut down at 2026-06-09 07:40:21 UTC
+fit4110-db-lab05   | 2026-06-09 07:40:21.489 UTC [1] LOG:  database system is ready to accept connections
+fit4110-db-lab05   | 2026-06-09 07:40:30.696 UTC [68] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:40:40.731 UTC [76] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:40:50.769 UTC [83] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:41:00.810 UTC [91] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:41:10.842 UTC [98] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:41:16.368 UTC [106] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:41:20.879 UTC [113] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:41:30.919 UTC [120] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:41:40.975 UTC [128] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:41:51.026 UTC [143] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:42:01.073 UTC [152] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:42:11.125 UTC [159] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:42:21.153 UTC [167] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:42:31.191 UTC [174] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:42:41.239 UTC [186] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:42:51.294 UTC [193] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:43:01.343 UTC [201] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:43:11.395 UTC [208] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:43:21.448 UTC [216] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:43:31.490 UTC [223] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:43:41.541 UTC [231] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:43:51.597 UTC [240] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:44:01.646 UTC [247] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:44:11.689 UTC [259] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:44:21.740 UTC [266] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:44:31.788 UTC [274] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:44:41.845 UTC [281] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:44:51.899 UTC [289] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:45:01.953 UTC [296] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:45:11.993 UTC [303] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:45:21.530 UTC [56] LOG:  checkpoint starting: time
+fit4110-db-lab05   | 2026-06-09 07:45:22.032 UTC [310] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:45:30.133 UTC [56] LOG:  checkpoint complete: wrote 86 buffers (0.5%); 0 WAL file(s) added, 0 removed, 0 recycled; write=8.589 s, sync=0.008 s, total=8.603 s; sync files=46, longest=0.002 s, average=0.001 s; distance=401 kB, estimate=401 kB
+fit4110-db-lab05   | 2026-06-09 07:45:32.087 UTC [319] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:45:42.146 UTC [326] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:45:52.194 UTC [338] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:46:03.545 UTC [345] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:46:13.599 UTC [353] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:46:16.219 UTC [360] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:46:23.657 UTC [374] FATAL:  database "lab05" does not exist
+fit4110-db-lab05   | 2026-06-09 07:46:33.711 UTC [382] FATAL:  database "lab05" does not exist

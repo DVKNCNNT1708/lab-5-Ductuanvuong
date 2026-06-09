@@ -1,5 +1,17 @@
 # Postman Collections
 
-Thư mục này để trống theo mặc định. Bạn có thể sao chép collection `FIT4110_lab04_iot_docker.postman_collection.json` từ repo Lab 04 vào đây và cập nhật script `test:compose` trong `package.json` để chạy Newman trên stack Compose.
+Collection `FIT4110_lab05_iot_compose.postman_collection.json` kiểm thử stack Docker Compose của Lab 05:
 
-Đảm bảo sửa `baseUrl` thành `http://localhost:8000` và sử dụng environment `FIT4110_lab05_local.postman_environment.json`.
+- API `/health`
+- tạo/lấy readings với bearer token
+- auth negative cases
+- validation negative cases
+- boundary temperature cases
+
+Chạy bằng:
+
+```bash
+npm run test:compose
+```
+
+Environment sử dụng `postman/environments/FIT4110_lab05_local.postman_environment.json` với `baseUrl=http://localhost:8000`.

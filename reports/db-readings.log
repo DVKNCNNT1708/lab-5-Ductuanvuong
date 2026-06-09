@@ -1,0 +1,8 @@
+   reading_id    |   device_id   |   metric    | value
+-----------------+---------------+-------------+-------
+ R-20260609-0006 | ESP32-LAB-A01 | temperature |  31.5
+ R-20260609-0007 | ESP32-LAB-A01 | temperature |    80
+ R-20260609-0004 | ESP32-LAB-A01 | temperature |  31.5
+ R-20260609-0005 | ESP32-LAB-A01 | temperature |    80
+ R-20260609-0002 | ESP32-LAB-A01 | temperature |  31.5
+(5 rows)

@@ -1,8 +1,7 @@
-version: "3.8"
-
 services:
   # Service API FastAPI
   api:
+    image: ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/iot-ingestion:v0.1.0-team-iot
     build:
       context: .
       dockerfile: Dockerfile
@@ -20,7 +19,7 @@ services:
     ports:
       - "${APP_PORT:-8000}:8000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -38,6 +37,8 @@ services:
       - db-data:/var/lib/postgresql/data
     networks:
       - team-internal
+    ports:
+      - "${POSTGRES_PUBLISHED_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lab05}"]
       interval: 10s
@@ -46,16 +47,20 @@ services:
 
   # AI service mẫu dùng Python HTTP server hoặc FastAPI
   ai-service:
-    image: python:3.11-slim
+    image: ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-service:v0.1.0-team-iot
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: fit4110-ai-lab05
-    working_dir: /service
-    volumes:
-      - ./src/ai_service:/service
-    command: ["python", "main.py"]
+    env_file:
+      - .env
+    command: ["uvicorn", "ai_service.main:app", "--app-dir", "src", "--host", "0.0.0.0", "--port", "9000"]
     networks:
       - team-internal
+    ports:
+      - "${AI_PORT:-9000}:9000"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import requests; import sys; sys.exit(0) if requests.get('http://localhost:9000/health').status_code == 200 else sys.exit(1)\""]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health', timeout=3).read()"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -65,7 +70,8 @@ networks:
   team-internal:
     driver: bridge
   class-net:
-    external: true
+    name: class-net
+    driver: bridge
 
 volumes:
   db-data:

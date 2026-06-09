@@ -1,17 +1,30 @@
 import os
+import json
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional
+from http import HTTPStatus
+from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+import psycopg
+from psycopg.rows import dict_row
+import requests
 
 # Đọc biến môi trường với giá trị mặc định
 SERVICE_NAME = os.getenv("SERVICE_NAME", "iot-ingestion")
 SERVICE_VERSION = os.getenv("SERVICE_VERSION", "0.5.0")
 AUTH_TOKEN = os.getenv("AUTH_TOKEN", "local-dev-token")
+USE_DATABASE = os.getenv("USE_DATABASE", "false").lower() in {"1", "true", "yes", "on"}
+USE_AI_SERVICE = os.getenv("USE_AI_SERVICE", "false").lower() in {"1", "true", "yes", "on"}
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", os.getenv("DB_HOST", "localhost"))
+POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
+POSTGRES_USER = os.getenv("POSTGRES_USER", "lab05")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "lab05pass")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "iotdb")
+AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:9000").rstrip("/")
 
 
 app = FastAPI(
@@ -85,6 +98,53 @@ class SensorReadingCreated(BaseModel):
 
 
 READINGS: List[Dict] = []
+READING_FIELDS = (
+    "reading_id",
+    "device_id",
+    "metric",
+    "value",
+    "unit",
+    "timestamp",
+    "created_at",
+)
+
+
+def get_db_connection() -> psycopg.Connection:
+    return psycopg.connect(
+        host=POSTGRES_HOST,
+        port=POSTGRES_PORT,
+        dbname=POSTGRES_DB,
+        user=POSTGRES_USER,
+        password=POSTGRES_PASSWORD,
+        row_factory=dict_row,
+    )
+
+
+def init_db() -> None:
+    if not USE_DATABASE:
+        return
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sensor_readings (
+                    reading_id TEXT PRIMARY KEY,
+                    device_id TEXT NOT NULL,
+                    metric TEXT NOT NULL,
+                    value DOUBLE PRECISION NOT NULL,
+                    unit TEXT,
+                    timestamp TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    ai_summary TEXT
+                )
+                """
+            )
+
+
+@app.on_event("startup")
+def startup_event() -> None:
+    init_db()
 
 
 def build_problem(
@@ -106,6 +166,13 @@ def build_problem(
     return problem
 
 
+def reason_phrase(status_code: int) -> str:
+    try:
+        return HTTPStatus(status_code).phrase
+    except ValueError:
+        return "HTTP Error"
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     if isinstance(exc.detail, dict):
@@ -113,13 +180,13 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     else:
         problem = build_problem(
             status_code=exc.status_code,
-            title=status.HTTP_STATUS_CODES.get(exc.status_code, "HTTP Error"),
+            title=reason_phrase(exc.status_code),
             detail=str(exc.detail),
             instance=str(request.url.path),
         )
 
     problem.setdefault("status", exc.status_code)
-    problem.setdefault("title", status.HTTP_STATUS_CODES.get(exc.status_code, "HTTP Error"))
+    problem.setdefault("title", reason_phrase(exc.status_code))
     problem.setdefault("type", "about:blank")
     problem.setdefault("detail", "Request failed")
     problem.setdefault("instance", str(request.url.path))
@@ -183,9 +250,48 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def next_reading_id() -> str:
+def next_memory_reading_id() -> str:
     today = datetime.now(timezone.utc).strftime("%Y%m%d")
     return f"R-{today}-{len(READINGS) + 1:04d}"
+
+
+def next_db_reading_id(conn: psycopg.Connection) -> str:
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    prefix = f"R-{today}-"
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT COUNT(*) AS total FROM sensor_readings WHERE reading_id LIKE %s",
+            (f"{prefix}%",),
+        )
+        row = cur.fetchone()
+
+    total = int(row["total"]) if row else 0
+    return f"{prefix}{total + 1:04d}"
+
+
+def request_ai_prediction() -> Dict[str, Any]:
+    if not USE_AI_SERVICE:
+        return {}
+
+    try:
+        response = requests.post(f"{AI_SERVICE_URL}/predict", timeout=3)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=build_problem(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                title="AI service unavailable",
+                detail=f"Cannot call AI service at {AI_SERVICE_URL}: {exc}",
+                problem_type="https://smart-campus.local/problems/ai-service-unavailable",
+            ),
+        ) from exc
+
+
+def db_row_to_reading(row: Dict[str, Any]) -> Dict[str, Any]:
+    return {field: row[field] for field in READING_FIELDS}
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -213,19 +319,50 @@ def create_reading(payload: SensorReadingCreate, response: Response) -> SensorRe
     if payload.metric == SensorMetric.temperature and payload.value >= 70:
         response.headers["X-Warning"] = "high-temperature"
 
-    reading_id = next_reading_id()
+    ai_summary = request_ai_prediction()
     created_at = now_iso()
 
-    item = {
-        "reading_id": reading_id,
-        "device_id": payload.device_id,
-        "metric": payload.metric.value,
-        "value": payload.value,
-        "unit": payload.unit.value if payload.unit else None,
-        "timestamp": payload.timestamp,
-        "created_at": created_at,
-    }
-    READINGS.append(item)
+    if USE_DATABASE:
+        with get_db_connection() as conn:
+            reading_id = next_db_reading_id(conn)
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO sensor_readings (
+                        reading_id,
+                        device_id,
+                        metric,
+                        value,
+                        unit,
+                        timestamp,
+                        created_at,
+                        ai_summary
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        reading_id,
+                        payload.device_id,
+                        payload.metric.value,
+                        payload.value,
+                        payload.unit.value if payload.unit else None,
+                        payload.timestamp,
+                        created_at,
+                        json.dumps(ai_summary),
+                    ),
+                )
+    else:
+        reading_id = next_memory_reading_id()
+        item = {
+            "reading_id": reading_id,
+            "device_id": payload.device_id,
+            "metric": payload.metric.value,
+            "value": payload.value,
+            "unit": payload.unit.value if payload.unit else None,
+            "timestamp": payload.timestamp,
+            "created_at": created_at,
+        }
+        READINGS.append(item)
 
     return SensorReadingCreated(
         reading_id=reading_id,
@@ -241,6 +378,27 @@ def latest_readings(
     device_id: Optional[str] = Query(default=None),
     limit: int = Query(default=10, ge=1, le=100),
 ) -> Dict[str, List[Dict]]:
+    if USE_DATABASE:
+        query = """
+            SELECT reading_id, device_id, metric, value, unit, timestamp, created_at
+            FROM sensor_readings
+        """
+        params: List[Any] = []
+
+        if device_id:
+            query += " WHERE device_id = %s"
+            params.append(device_id)
+
+        query += " ORDER BY created_at DESC LIMIT %s"
+        params.append(limit)
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, params)
+                rows = cur.fetchall()
+
+        return {"items": [db_row_to_reading(row) for row in rows]}
+
     items = READINGS
 
     if device_id:
@@ -251,6 +409,33 @@ def latest_readings(
 
 @app.get("/readings/{reading_id}", dependencies=[Depends(verify_bearer_token)])
 def get_reading(reading_id: str) -> Dict:
+    if USE_DATABASE:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT reading_id, device_id, metric, value, unit, timestamp, created_at
+                    FROM sensor_readings
+                    WHERE reading_id = %s
+                    """,
+                    (reading_id,),
+                )
+                row = cur.fetchone()
+
+        if row:
+            return db_row_to_reading(row)
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=build_problem(
+                status_code=status.HTTP_404_NOT_FOUND,
+                title="Not Found",
+                detail=f"Reading {reading_id} does not exist",
+                instance=f"/readings/{reading_id}",
+                problem_type="https://smart-campus.local/problems/not-found",
+            ),
+        )
+
     for item in READINGS:
         if item["reading_id"] == reading_id:
             return item
