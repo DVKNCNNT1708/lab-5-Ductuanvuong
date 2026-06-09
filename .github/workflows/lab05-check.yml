@@ -61,7 +61,7 @@ jobs:
             curl -fsS http://localhost:9000/health && exit 0
             echo "Retry $i..."; sleep 5
           done
-          docker compose logs ai-service
+          docker compose logs vision-model
           exit 1
 
       - name: Test DB readiness (pg_isready)
@@ -102,8 +102,8 @@ jobs:
       - name: Push versioned images
         if: github.event_name != 'pull_request'
         run: |
-          docker push ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/iot-ingestion:v0.1.0-team-iot
-          docker push ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-service:v0.1.0-team-iot
+          docker push ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-vision-api:v0.1.0-team-vision
+          docker push ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/vision-model:v0.1.0-team-vision
 
       # 9. Kiểm tra readiness checklist (yêu cầu tối thiểu 6 mục đã tick)
       - name: Verify readiness checklist

@@ -1,17 +1,17 @@
 services:
-  # Service API FastAPI
+  # AI Vision API FastAPI service
   api:
-    image: ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/iot-ingestion:v0.1.0-team-iot
+    image: ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-vision-api:v0.1.0-team-vision
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fit4110-api-lab05
+    container_name: fit4110-ai-vision-lab05
     env_file:
       - .env
     depends_on:
       db:
         condition: service_healthy
-      ai-service:
+      vision-model:
         condition: service_healthy
     networks:
       - team-internal
@@ -28,11 +28,11 @@ services:
   # PostgreSQL database service
   db:
     image: postgres:15-alpine
-    container_name: fit4110-db-lab05
+    container_name: fit4110-vision-db-lab05
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-lab05}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lab05pass}
-      POSTGRES_DB: ${POSTGRES_DB:-iotdb}
+      POSTGRES_USER: ${POSTGRES_USER:-vision}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-visionpass}
+      POSTGRES_DB: ${POSTGRES_DB:-visiondb}
     volumes:
       - db-data:/var/lib/postgresql/data
     networks:
@@ -40,18 +40,18 @@ services:
     ports:
       - "${POSTGRES_PUBLISHED_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lab05}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vision}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # AI service mẫu dùng Python HTTP server hoặc FastAPI
-  ai-service:
-    image: ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-service:v0.1.0-team-iot
+  # Internal model runtime used by the AI Vision API
+  vision-model:
+    image: ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/vision-model:v0.1.0-team-vision
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fit4110-ai-lab05
+    container_name: fit4110-vision-model-lab05
     env_file:
       - .env
     command: ["uvicorn", "ai_service.main:app", "--app-dir", "src", "--host", "0.0.0.0", "--port", "9000"]

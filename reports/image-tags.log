@@ -1,3 +1,3 @@
-REPOSITORY                                              TAG               IMAGE ID       CREATED         SIZE
-ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/iot-ingestion   v0.1.0-team-iot   85fd403d01d2   2 minutes ago   318MB
-ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-service      v0.1.0-team-iot   a18f22b1a46e   2 minutes ago   318MB
+REPOSITORY                                              TAG                  IMAGE ID       CREATED         SIZE
+ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-vision-api   v0.1.0-team-vision   f1f9568a37b6   3 minutes ago   319MB
+ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/vision-model   v0.1.0-team-vision   05d525271e98   3 minutes ago   319MB

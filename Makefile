@@ -10,11 +10,11 @@ lint:
 
 # Build Docker image for API only
 build:
-	docker build -t fit4110/iot-ingestion:lab05 .
+	docker build -t ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-vision-api:v0.1.0-team-vision .
 
 # Run API container standalone (not via compose)
 run:
-	docker run --rm --name fit4110-api-lab05 -p 8000:8000 --env-file .env.example fit4110/iot-ingestion:lab05
+	docker run --rm --name fit4110-ai-vision-lab05 -p 8000:8000 --env-file .env.example ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-vision-api:v0.1.0-team-vision
 
 # Compose commands
 compose-up:

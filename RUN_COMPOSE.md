@@ -33,15 +33,15 @@ docker compose up -d --build --wait
 
 Lệnh trên sẽ tạo các container:
 
-- `fit4110-db-lab05` (PostgreSQL)
-- `fit4110-ai-lab05` (AI service mẫu chạy port 9000)
-- `fit4110-api-lab05` (API FastAPI trên port 8000)
+- `fit4110-vision-db-lab05` (PostgreSQL)
+- `fit4110-vision-model-lab05` (model runtime mẫu chạy port 9000)
+- `fit4110-ai-vision-lab05` (AI Vision API FastAPI trên port 8000)
 
 API và AI image được tag theo quy ước:
 
 ```text
-ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/iot-ingestion:v0.1.0-team-iot
-ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-service:v0.1.0-team-iot
+ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/ai-vision-api:v0.1.0-team-vision
+ghcr.io/dvkncnnt1708/lab-5-ductuanvuong/vision-model:v0.1.0-team-vision
 ```
 
 Theo dõi log:
@@ -56,19 +56,21 @@ Sau vài giây, kiểm tra health của mỗi service:
 # API
 curl http://localhost:8000/health
 
-# AI service
+# Model service
 curl http://localhost:9000/health
 
 # DB readiness
-docker exec -it fit4110-db-lab05 pg_isready -U $POSTGRES_USER
+docker exec -it fit4110-vision-db-lab05 pg_isready -U $POSTGRES_USER
 ```
 
 Nếu máy đang có PostgreSQL local chiếm port `5432`, đổi `POSTGRES_PUBLISHED_PORT` trong `.env` sang port trống, ví dụ `15432`. Port nội bộ container vẫn là `5432`.
 
-Bạn cũng có thể truy cập endpoint `/predict` của AI service để xem kết quả mẫu:
+Bạn cũng có thể truy cập endpoint `/predict` của model service để xem kết quả mẫu:
 
 ```bash
-curl -X POST http://localhost:9000/predict
+curl -X POST http://localhost:9000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"requestId":"REQ-CAM-20260512-0001","cameraId":"CAM-ER-01","motionLevel":0.92}'
 ```
 
 ---
@@ -122,5 +124,5 @@ make logs
 
 - Sử dụng `docker compose ps` để xem trạng thái container.
 - Nếu API trả lỗi kết nối DB, hãy kiểm tra biến môi trường `POSTGRES_*` trong `.env` và đảm bảo DB đã sẵn sàng (`pg_isready`).
-- Nếu API không gọi được AI, kiểm tra `AI_SERVICE_URL=http://ai-service:9000` trong `.env` và network `team-internal`.
-- Nếu AI service cần tải mô hình lớn, tăng `start_period` của healthcheck trong `docker-compose.yml`.
+- Nếu API không gọi được model service, kiểm tra `MODEL_SERVICE_URL=http://vision-model:9000` trong `.env` và network `team-internal`.
+- Nếu model service cần tải mô hình lớn, tăng `start_period` của healthcheck trong `docker-compose.yml`.

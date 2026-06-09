@@ -70,22 +70,24 @@ FIT4110_lab05_docker_compose_readiness/
 ├── Makefile
 ├── requirements.txt
 ├── src/
-│   ├── iot_app/
+│   ├── vision_app/
 │   │   ├── __init__.py
 │   │   └── main.py
 │   └── ai_service/
 │       └── main.py
 ├── contracts/
-│   └── iot-ingestion.openapi.yaml
+│   └── ai-vision.openapi.yaml
 ├── postman/
+│   ├── collections/
+│   │   └── FIT4110_lab05_ai_vision_compose.postman_collection.json
 │   └── environments/
-│       └── FIT4110_lab05_local.postman_environment.json
+│       └── FIT4110_lab05_ai_vision_local.postman_environment.json
 ├── checklists/
 │   └── readiness-checklist.md
 └── reports/
 ```
 
-Thư mục `src/iot_app` chứa API FastAPI giống Lab 04. Thư mục `src/ai_service` chứa service AI mẫu (giả lập), cung cấp một endpoint `/predict` trả về kết quả dummy. Nhóm có thể thay bằng mô hình thực tế (YOLOv8, MediaPipe…).
+Thư mục `src/vision_app` chứa API FastAPI cho AI Vision theo contract Camera Stream → AI Vision. Thư mục `src/ai_service` chứa model runtime mẫu, cung cấp endpoint `/predict` trả về kết quả mock theo định dạng detection.
 
 ---
 
@@ -124,7 +126,7 @@ Các bước giống Lab 04:
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn iot_app.main:app --app-dir src --host 0.0.0.0 --port 8000
+uvicorn vision_app.main:app --app-dir src --host 0.0.0.0 --port 8000
 ```
 
 Kiểm tra health:
@@ -137,7 +139,7 @@ curl http://localhost:8000/health
 
 ## 6. Điều phối đa dịch vụ với Docker Compose
 
-File `docker-compose.yml` định nghĩa 3 service: `api`, `db` và `ai-service`. Các biến môi trường được đặt trong `.env.example` và các volume/network được khai báo rõ ràng.
+File `docker-compose.yml` định nghĩa 3 service: `api`, `db` và `vision-model`. Các biến môi trường được đặt trong `.env.example` và các volume/network được khai báo rõ ràng.
 
 Chạy compose (build & run):
 
@@ -145,7 +147,7 @@ Chạy compose (build & run):
 docker compose up -d --build
 ```
 
-Compose sẽ kéo hoặc build image, tạo mạng `team-internal`, gắn volume DB và khởi động lần lượt `db` → `ai-service` → `api`. Bạn có thể theo dõi log:
+Compose sẽ kéo hoặc build image, tạo mạng `team-internal`, gắn volume DB và khởi động lần lượt `db` → `vision-model` → `api`. Bạn có thể theo dõi log:
 
 ```bash
 docker compose logs -f
@@ -154,10 +156,10 @@ docker compose logs -f
 Kiểm tra readiness của từng service:
 
 - API: `curl http://localhost:8000/health`
-- DB: `docker exec -it fit4110-db-lab05 pg_isready -U $POSTGRES_USER`
-- AI: `curl http://localhost:9000/health` (service mẫu trả về JSON đơn giản)
+- DB: `docker exec -it fit4110-vision-db-lab05 pg_isready -U $POSTGRES_USER`
+- Model service: `curl http://localhost:9000/health`
 
-Sau khi stack đã sẵn sàng, chạy lại Postman collection giống Lab 04 (sửa `baseUrl` thành `http://localhost:8000`).
+Sau khi stack đã sẵn sàng, chạy Postman collection AI Vision trong `postman/collections/`.
 
 Dừng toàn bộ stack:
 
@@ -173,10 +175,10 @@ Phần này ghi lại checklist readiness cần kiểm tra trước khi tuyên b
 
 - DB đã khởi động và sẵn sàng (`pg_isready`).
 - AI service đã tải mô hình (nếu có) và có health check trả 200.
-- API có thể kết nối DB và AI (ví dụ tạo một reading thành công).
+- API có thể kết nối DB và model service (ví dụ tạo một detection thành công).
 - Các biến môi trường (.env) được đặt đúng, không dùng secret thật.
 - `team-internal` network hoạt động; service có thể gọi nội bộ qua tên container.
-- Version/tag của từng image được cập nhật đúng quy ước (vd: `v0.1.0-team-iot`).
+- Version/tag của từng image được cập nhật đúng quy ước (vd: `v0.1.0-team-vision`).
 
 ---
 
@@ -201,10 +203,9 @@ Mỗi nhóm dùng repo này làm mẫu và thay thế service trong `src/` bằn
 
 | Nhóm         | Cần thay đổi |
 |--------------|-------------|
-| `team-iot`   | Có thể sử dụng API IoT mẫu, thêm DB TimescaleDB nếu muốn. |
 | `team-camera`| Thay `src/ai_service` bằng service Camera Stream & AI inference, cập nhật port và health. |
 | `team-gate`  | Kết nối API với Access Gate service, lưu ý biến môi trường DB cho cổng, bỏ AI nếu không cần. |
-| `team-vision`| Thay `ai_service` bằng mô hình YOLOv8/MediaPipe; đảm bảo container đủ dependency CUDA khi cần. |
+| `team-vision`| Repo này đang dùng contract AI Vision; có thể thay `ai_service` bằng YOLOv8/MediaPipe thật khi cần. |
 | `team-analytics`| Thay DB bằng TimescaleDB, service analytics sẽ đọc dữ liệu và trả về thống kê. |
 | `team-core`  | Thay API thành policy engine; có thể bỏ AI/DB nếu không dùng. |
 | `team-notify`| Thay API thành Notification service, thêm RabbitMQ hoặc gửi email/SMS; không commit token thật. |
@@ -218,7 +219,7 @@ Một nhóm được xem là hoàn thành Lab 05 khi:
 - `docker-compose.yml` khởi tạo ít nhất 3 container và khai báo đúng network/volume.
 - Mỗi service có `HEALTHCHECK` và container được chạy bằng user non‑root (nếu tự build).
 - `.dockerignore`, `.env.example`, `RUN_COMPOSE.md` đầy đủ, không rò rỉ secret.
-- `db` và `ai-service` sẵn sàng trước khi API start (Compose `depends_on` và health check). 
+- `db` và `vision-model` sẵn sàng trước khi API start (Compose `depends_on` và health check).
 - Postman/Newman test pass trên API khi chạy trong stack Compose.
 - Có report trong `reports/` (XML/HTML) và evidence log/ảnh chụp health.
 - Version/tag của image tuân theo quy ước `v0.1.0-<team>`, push lên registry (ghcr.io hoặc Docker Hub).

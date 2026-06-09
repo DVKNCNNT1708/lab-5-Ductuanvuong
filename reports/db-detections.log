@@ -1,0 +1,4 @@
+   detection_id    |      request_id       | camera_id |  status   | risk_level
+-------------------+-----------------------+-----------+-----------+------------
+ DET-20260609-0001 | REQ-CAM-20260512-0001 | CAM-ER-01 | COMPLETED | HIGH
+(1 row)

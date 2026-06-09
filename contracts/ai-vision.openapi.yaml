@@ -1,0 +1,793 @@
+openapi: 3.1.0
+info:
+  title: AI Vision Detection API
+  version: 1.0.0
+  description: |
+    OpenAPI contract for Pair 01 - Camera Stream -> AI Vision.
+    Camera Stream sends image references after motion is detected so AI Vision
+    can analyze the frame and return detection results for downstream services.
+  contact:
+    name: Group B4
+servers:
+  - url: http://localhost:4010
+    description: Prism mock server
+  - url: https://ai-vision.hospital-campus.local
+    description: Class network placeholder
+tags:
+  - name: health
+    description: Service health and readiness endpoints
+  - name: vision
+    description: Image detection operations
+  - name: models
+    description: AI model capability endpoints
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Check service health
+      description: Returns a simple health status for the AI Vision service.
+      tags: [health]
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+              examples:
+                ok:
+                  value:
+                    status: ok
+                    service: ai-vision
+                    time: '2026-05-12T08:00:00Z'
+
+  /vision/detect:
+    post:
+      operationId: createDetection
+      summary: Submit an image detection request
+      description: |
+        Camera Stream submits one frame reference or image metadata after motion
+        is detected. AI Vision acknowledges the request quickly and may include
+        a preliminary result if processing completes fast enough.
+      tags: [vision]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetectionRequest'
+            examples:
+              imageUrl:
+                value:
+                  requestId: REQ-CAM-20260512-0001
+                  cameraId: CAM-ER-01
+                  capturedAt: '2026-05-12T08:00:00Z'
+                  traceId: TRACE-20260512-0001
+                  zoneId: ER-ENTRANCE
+                  motionLevel: 0.92
+                  notes: Motion detected near emergency entrance
+                  imageSource:
+                    sourceType: IMAGE_URL
+                    url: https://media.hospital.local/camera/CAM-ER-01/frame-1001.jpg
+              objectStorageRef:
+                value:
+                  requestId: REQ-CAM-20260512-0002
+                  cameraId: CAM-ICU-02
+                  capturedAt: '2026-05-12T08:02:10Z'
+                  traceId: TRACE-20260512-0002
+                  zoneId: ICU-HALL
+                  motionLevel: 0.71
+                  notes: Re-check frame due to repeated motion
+                  imageSource:
+                    sourceType: OBJECT_STORAGE_REF
+                    bucket: camera-stream-cache
+                    objectKey: ICU-02/2026/05/12/frame-1002.jpg
+                    expiresAt: '2026-05-12T08:12:10Z'
+      responses:
+        '202':
+          description: Detection request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetectionSubmission'
+              examples:
+                accepted:
+                  value:
+                    detectionId: DET-20260512-0001
+                    requestId: REQ-CAM-20260512-0001
+                    traceId: TRACE-20260512-0001
+                    status: PROCESSING
+                    acceptedAt: '2026-05-12T08:00:01Z'
+                    preliminaryResult:
+                      status: COMPLETED
+                      confidence: 0.98
+                      riskLevel: HIGH
+                      modelVersion: yolov11n-hospital-2.3.1
+                      summary: Person detected in restricted area
+                      alertHint: REVIEW_SECURITY
+                      completedAt: '2026-05-12T08:00:02Z'
+                      thumbnailUrl: https://media.hospital.local/thumbnails/DET-20260512-0001.jpg
+                      objects:
+                        - objectType: PERSON
+                          label: human
+                          confidence: 0.99
+                          trackId: TRACK-77
+                          boundingBox:
+                            x: 0.12
+                            y: 0.08
+                            width: 0.41
+                            height: 0.82
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /vision/detections/{detectionId}:
+    get:
+      operationId: getDetectionById
+      summary: Get a detection result by ID
+      description: Returns the current or final detection result for a submitted request.
+      tags: [vision]
+      parameters:
+        - $ref: '#/components/parameters/DetectionId'
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Detection result found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetectionResult'
+              examples:
+                completed:
+                  value:
+                    detectionId: DET-20260512-0001
+                    requestId: REQ-CAM-20260512-0001
+                    traceId: TRACE-20260512-0001
+                    status: COMPLETED
+                    confidence: 0.98
+                    riskLevel: HIGH
+                    modelVersion: yolov11n-hospital-2.3.1
+                    summary: Person detected in restricted area
+                    alertHint: REVIEW_SECURITY
+                    processedAt: '2026-05-12T08:00:01Z'
+                    completedAt: '2026-05-12T08:00:02Z'
+                    thumbnailUrl: https://media.hospital.local/thumbnails/DET-20260512-0001.jpg
+                    objects:
+                      - objectType: PERSON
+                        label: human
+                        confidence: 0.99
+                        trackId: TRACK-77
+                        boundingBox:
+                          x: 0.12
+                          y: 0.08
+                          width: 0.41
+                          height: 0.82
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /vision/models/info:
+    get:
+      operationId: getModelInfo
+      summary: Get active model information
+      description: Returns the model version and supported input capabilities.
+      tags: [models]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Active model information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelInfo'
+              examples:
+                activeModel:
+                  value:
+                    modelName: yolo-hospital-monitor
+                    modelVersion: yolov11n-hospital-2.3.1
+                    supportedObjectTypes:
+                      - PERSON
+                      - WHEELCHAIR
+                      - STRETCHER
+                      - SMOKE
+                    supportedImageSourceTypes:
+                      - IMAGE_URL
+                      - OBJECT_STORAGE_REF
+                    maxImageSizeBytes: 5242880
+                    notes: Tuned for indoor hospital corridor and entrance cameras
+                    lastUpdatedAt: '2026-05-01T00:00:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    DetectionId:
+      name: detectionId
+      in: path
+      required: true
+      description: Unique identifier of the detection request.
+      schema:
+        type: string
+        pattern: '^DET-[0-9]{8}-[0-9]{4}$'
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: Optional correlation identifier used for tracing across services.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 100
+
+  schemas:
+    HealthStatus:
+      type: object
+      additionalProperties: false
+      required: [status, service, time]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          description: Current health status of the service.
+          example: ok
+        service:
+          type: string
+          minLength: 2
+          maxLength: 80
+          description: Service name.
+          example: ai-vision
+        time:
+          type: string
+          format: date-time
+          description: Time when the health response was generated.
+          example: '2026-05-12T08:00:00Z'
+
+    DetectionRequest:
+      type: object
+      additionalProperties: false
+      required: [requestId, cameraId, capturedAt, imageSource, traceId]
+      properties:
+        requestId:
+          type: string
+          pattern: '^REQ-[A-Z0-9-]+$'
+          description: Client-side idempotency key for this detection request.
+          example: REQ-CAM-20260512-0001
+        cameraId:
+          type: string
+          pattern: '^CAM-[A-Z0-9-]+$'
+          description: Unique camera identifier.
+          example: CAM-ER-01
+        capturedAt:
+          type: string
+          format: date-time
+          description: Time when the frame was captured.
+          example: '2026-05-12T08:00:00Z'
+        traceId:
+          type: string
+          pattern: '^TRACE-[A-Z0-9-]+$'
+          description: Trace identifier shared across downstream services.
+          example: TRACE-20260512-0001
+        zoneId:
+          type: string
+          nullable: true
+          minLength: 2
+          maxLength: 80
+          description: Optional zone or area where the camera is installed.
+          example: ER-ENTRANCE
+        motionLevel:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 1
+          description: Motion score detected by Camera Stream before calling AI Vision.
+          example: 0.92
+        notes:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 300
+          description: Optional operator or system note for the request.
+          example: Motion detected near emergency entrance
+        imageSource:
+          $ref: '#/components/schemas/ImageSource'
+
+    ImageSource:
+      oneOf:
+        - $ref: '#/components/schemas/ImageUrlSource'
+        - $ref: '#/components/schemas/ObjectStorageSource'
+      discriminator:
+        propertyName: sourceType
+        mapping:
+          IMAGE_URL: '#/components/schemas/ImageUrlSource'
+          OBJECT_STORAGE_REF: '#/components/schemas/ObjectStorageSource'
+
+    ImageUrlSource:
+      type: object
+      additionalProperties: false
+      required: [sourceType, url]
+      properties:
+        sourceType:
+          type: string
+          const: IMAGE_URL
+          description: Indicates the image is referenced by a direct URL.
+          example: IMAGE_URL
+        url:
+          type: string
+          format: uri
+          description: Temporary or internal URL to the captured image.
+          example: https://media.hospital.local/camera/CAM-ER-01/frame-1001.jpg
+
+    ObjectStorageSource:
+      type: object
+      additionalProperties: false
+      required: [sourceType, bucket, objectKey, expiresAt]
+      properties:
+        sourceType:
+          type: string
+          const: OBJECT_STORAGE_REF
+          description: Indicates the image is referenced inside object storage.
+          example: OBJECT_STORAGE_REF
+        bucket:
+          type: string
+          minLength: 3
+          maxLength: 100
+          description: Storage bucket or container name.
+          example: camera-stream-cache
+        objectKey:
+          type: string
+          minLength: 3
+          maxLength: 300
+          description: Object key inside the storage bucket.
+          example: ICU-02/2026/05/12/frame-1002.jpg
+        expiresAt:
+          type: string
+          format: date-time
+          description: Time after which the storage reference may become unavailable.
+          example: '2026-05-12T08:12:10Z'
+
+    DetectionSubmission:
+      type: object
+      additionalProperties: false
+      required: [detectionId, requestId, traceId, status, acceptedAt, preliminaryResult]
+      properties:
+        detectionId:
+          type: string
+          pattern: '^DET-[0-9]{8}-[0-9]{4}$'
+          description: Unique identifier assigned by AI Vision for the detection.
+          example: DET-20260512-0001
+        requestId:
+          type: string
+          pattern: '^REQ-[A-Z0-9-]+$'
+          description: Original request id provided by Camera Stream.
+          example: REQ-CAM-20260512-0001
+        traceId:
+          type: string
+          pattern: '^TRACE-[A-Z0-9-]+$'
+          description: Trace identifier shared with the original request.
+          example: TRACE-20260512-0001
+        status:
+          $ref: '#/components/schemas/DetectionStatus'
+        acceptedAt:
+          type: string
+          format: date-time
+          description: Time when the request was accepted by AI Vision.
+          example: '2026-05-12T08:00:01Z'
+        preliminaryResult:
+          $ref: '#/components/schemas/DetectionSnapshot'
+          description: Optional early result when processing finishes very quickly.
+
+    DetectionResult:
+      allOf:
+        - $ref: '#/components/schemas/DetectionSnapshot'
+        - type: object
+          required: [detectionId, requestId, traceId, processedAt]
+          properties:
+            detectionId:
+              type: string
+              pattern: '^DET-[0-9]{8}-[0-9]{4}$'
+              description: Unique identifier assigned by AI Vision for the detection.
+              example: DET-20260512-0001
+            requestId:
+              type: string
+              pattern: '^REQ-[A-Z0-9-]+$'
+              description: Original request id provided by Camera Stream.
+              example: REQ-CAM-20260512-0001
+            traceId:
+              type: string
+              pattern: '^TRACE-[A-Z0-9-]+$'
+              description: Trace identifier shared with the original request.
+              example: TRACE-20260512-0001
+            processedAt:
+              type: string
+              format: date-time
+              description: Time when the service produced the current response.
+              example: '2026-05-12T08:00:01Z'
+
+    DetectionSnapshot:
+      type: object
+      required:
+        [status, confidence, riskLevel, modelVersion, summary, alertHint, completedAt, thumbnailUrl, objects]
+      properties:
+        status:
+          $ref: '#/components/schemas/DetectionStatus'
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Overall confidence score for the result.
+          example: 0.98
+        riskLevel:
+          $ref: '#/components/schemas/RiskLevel'
+        modelVersion:
+          type: string
+          minLength: 3
+          maxLength: 100
+          description: Model version that produced this result.
+          example: yolov11n-hospital-2.3.1
+        summary:
+          type: string
+          nullable: true
+          minLength: 3
+          maxLength: 300
+          description: Short human-readable summary of the result.
+          example: Person detected in restricted area
+        alertHint:
+          type: string
+          enum: [REVIEW_SECURITY, MONITOR, NONE]
+          description: Suggested downstream action for other services.
+          example: REVIEW_SECURITY
+        completedAt:
+          type: string
+          nullable: true
+          format: date-time
+          description: Final completion time when the detection is no longer processing.
+          example: '2026-05-12T08:00:02Z'
+        thumbnailUrl:
+          type: string
+          nullable: true
+          format: uri
+          description: Optional preview image generated by AI Vision.
+          example: https://media.hospital.local/thumbnails/DET-20260512-0001.jpg
+        objects:
+          type: array
+          minItems: 0
+          maxItems: 50
+          description: Objects detected in the image.
+          items:
+            $ref: '#/components/schemas/DetectedObject'
+
+    DetectedObject:
+      type: object
+      additionalProperties: false
+      required: [objectType, confidence, boundingBox]
+      properties:
+        objectType:
+          type: string
+          enum: [PERSON, WHEELCHAIR, STRETCHER, SMOKE, FIRE_EXTINGUISHER, UNKNOWN]
+          description: Category of object detected by the model.
+          example: PERSON
+        label:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 80
+          description: Optional label returned by the model.
+          example: human
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Confidence score for this object.
+          example: 0.99
+        trackId:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 80
+          description: Optional tracking identifier if the object is tracked across frames.
+          example: TRACK-77
+        boundingBox:
+          $ref: '#/components/schemas/BoundingBox'
+
+    BoundingBox:
+      type: object
+      additionalProperties: false
+      required: [x, y, width, height]
+      properties:
+        x:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Left coordinate normalized to frame width.
+          example: 0.12
+        y:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Top coordinate normalized to frame height.
+          example: 0.08
+        width:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Box width normalized to frame width.
+          example: 0.41
+        height:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Box height normalized to frame height.
+          example: 0.82
+
+    ModelInfo:
+      type: object
+      additionalProperties: false
+      required:
+        [modelName, modelVersion, supportedObjectTypes, supportedImageSourceTypes, maxImageSizeBytes]
+      properties:
+        modelName:
+          type: string
+          minLength: 3
+          maxLength: 100
+          description: Human-readable model name.
+          example: yolo-hospital-monitor
+        modelVersion:
+          type: string
+          minLength: 3
+          maxLength: 100
+          description: Active model version identifier.
+          example: yolov11n-hospital-2.3.1
+        supportedObjectTypes:
+          type: array
+          minItems: 1
+          maxItems: 20
+          description: Object categories the model can identify.
+          items:
+            type: string
+            enum: [PERSON, WHEELCHAIR, STRETCHER, SMOKE, FIRE_EXTINGUISHER, UNKNOWN]
+        supportedImageSourceTypes:
+          type: array
+          minItems: 1
+          maxItems: 5
+          description: Supported ways to reference the input image.
+          items:
+            type: string
+            enum: [IMAGE_URL, OBJECT_STORAGE_REF]
+        maxImageSizeBytes:
+          type: integer
+          minimum: 1024
+          maximum: 104857600
+          description: Maximum accepted image size in bytes.
+          example: 5242880
+        notes:
+          type: string
+          nullable: true
+          minLength: 3
+          maxLength: 300
+          description: Optional notes about the active model.
+          example: Tuned for indoor hospital corridor and entrance cameras
+        lastUpdatedAt:
+          type: string
+          nullable: true
+          format: date-time
+          description: Timestamp when the active model was last updated.
+          example: '2026-05-01T00:00:00Z'
+
+    DetectionStatus:
+      type: string
+      enum: [PROCESSING, COMPLETED, FAILED]
+      description: Current lifecycle status of the detection request.
+      example: PROCESSING
+
+    RiskLevel:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, CRITICAL]
+      description: Risk score derived from the detection result.
+      example: HIGH
+
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI identifying the error category.
+          example: https://hospital-campus.local/errors/validation
+        title:
+          type: string
+          minLength: 3
+          maxLength: 120
+          description: Short summary of the problem.
+          example: Invalid request body
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+          description: HTTP status code for this problem.
+          example: 400
+        detail:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Detailed description of the problem.
+          example: imageSource.sourceType is required
+        instance:
+          type: string
+          nullable: true
+          format: uri
+          description: URI identifying the request instance that caused the error.
+          example: https://ai-vision.hospital-campus.local/vision/detect
+        errors:
+          type: array
+          minItems: 0
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required: [field, code, message]
+            properties:
+              field:
+                type: string
+                minLength: 1
+                maxLength: 80
+                example: imageSource.url
+              code:
+                type: string
+                minLength: 2
+                maxLength: 80
+                example: REQUIRED
+              message:
+                type: string
+                minLength: 3
+                maxLength: 200
+                example: imageSource.url must be a valid URI
+
+  responses:
+    BadRequest:
+      description: Request body or parameters do not match the contract.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://hospital-campus.local/errors/validation
+            title: Invalid request body
+            status: 400
+            detail: imageSource.sourceType is required
+            instance: https://ai-vision.hospital-campus.local/vision/detect
+            errors:
+              - field: imageSource.sourceType
+                code: REQUIRED
+                message: imageSource.sourceType is required
+
+    Unauthorized:
+      description: Missing or invalid authentication token.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://hospital-campus.local/errors/unauthorized
+            title: Authentication required
+            status: 401
+            detail: Bearer token is missing
+            instance: https://ai-vision.hospital-campus.local/vision/detect
+            errors: []
+
+    Forbidden:
+      description: Client is authenticated but not allowed to access the resource.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://hospital-campus.local/errors/forbidden
+            title: Access denied
+            status: 403
+            detail: Client is not allowed to use this model
+            instance: https://ai-vision.hospital-campus.local/vision/models/info
+            errors: []
+
+    NotFound:
+      description: Requested resource does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://hospital-campus.local/errors/not-found
+            title: Detection not found
+            status: 404
+            detail: detectionId DET-20260512-9999 does not exist
+            instance: https://ai-vision.hospital-campus.local/vision/detections/DET-20260512-9999
+            errors: []
+
+    Conflict:
+      description: Duplicate request or business conflict detected.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://hospital-campus.local/errors/conflict
+            title: Duplicate request
+            status: 409
+            detail: requestId REQ-CAM-20260512-0001 already exists
+            instance: https://ai-vision.hospital-campus.local/vision/detect
+            errors: []
+
+    PayloadTooLarge:
+      description: Input image or metadata exceeds the allowed size limit.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://hospital-campus.local/errors/payload-too-large
+            title: Payload too large
+            status: 413
+            detail: Image exceeds maxImageSizeBytes limit
+            instance: https://ai-vision.hospital-campus.local/vision/detect
+            errors: []
+
+    UnprocessableEntity:
+      description: Request is syntactically valid but violates business rules.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://hospital-campus.local/errors/unprocessable
+            title: Unsupported camera registration
+            status: 422
+            detail: cameraId CAM-ER-99 is not registered for AI Vision
+            instance: https://ai-vision.hospital-campus.local/vision/detect
+            errors: []
+
+    ServiceUnavailable:
+      description: AI Vision is temporarily unavailable or overloaded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://hospital-campus.local/errors/service-unavailable
+            title: Service temporarily unavailable
+            status: 503
+            detail: Detection backend is warming up
+            instance: https://ai-vision.hospital-campus.local/vision/detect
+            errors: []
